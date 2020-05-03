@@ -2,7 +2,7 @@ import pyxel as px
 from vector import Vector2
 from utilities import get_cell, cell_list, detect_collision
 from time import time
-
+from random import randrange
 
 class Player:
     def __init__(self, position: Vector2, dimension: Vector2):
@@ -53,18 +53,18 @@ class Player:
             cell_type = get_cell(self.player_position_in_cell + cell_pos)
             if cell_type != None:
                 if cell_list[cell_type] == "wall":
-                    self.cell_to_check.append(self.player_position_in_cell + cell_pos)
+                    self.cell_to_check.append(
+                        self.player_position_in_cell + cell_pos)
         self.player_position_in_cell *= 8
-
 
     def collide_with_wall(self, test_pos):
         for cell in self.cell_to_check:
-            if detect_collision(test_pos, self.dimension, cell*8, Vector2(8,8)):
+            if detect_collision(test_pos, self.dimension, cell*8, Vector2(8, 8)):
                 return True
         return False
 
     def slide_along_wall(self):
-        #collision is done her too
+        # collision is done her too
         if self.direction.x != 0:
             self.newdir = Vector2(self.direction.x, 0)
             if self.collide_with_wall(self.newdir + self.position):
@@ -82,30 +82,94 @@ class Player:
         self.slide_along_wall()
         self.position += self.direction
 
-
     def draw(self):
         px.blt(self.position.x, self.position.y, 0, *self.current_sprite, 0)
         if self.debug_mode:
             for i in self.cell_to_check:
-                px.rectb(i.x * 8, i.y* 8, 8, 8, 6)
-            px.rectb(self.position.x, self.position.y, self.dimension.x, self.dimension.y, 6)
+                px.rectb(i.x * 8, i.y * 8, 8, 8, 6)
+            px.rectb(self.position.x, self.position.y,
+                     self.dimension.x, self.dimension.y, 6)
 
 
+class Block:
+    @staticmethod
+    def replace_block(cell_position, tile_index):
+        px.tilemap(0).set(cell_position.x, cell_position.y, tile_index)
+
+    def __init__(self, cell_position: Vector2):
+        self.cell_position = cell_position
+        self.cell_position_on_screen = cell_position * 8
+
+
+class Block_On_Fire(Block):
+    def __init__(self, cell_position: Vector2):
+        super().__init__(cell_position)
+        self.firesprite = [
+            (16, 0, 8, 8),
+            (24, 0, 8, 8),
+            (32, 0, 8, 8)
+        ]
+        self.current_sprite = self.firesprite[0]
+
+    def update(self, time):
+        modulo = time % 3
+        if modulo < 1:
+            self.current_sprite = self.firesprite[0]
+
+        elif modulo < 2:
+            self.current_sprite = self.firesprite[1]
+
+        elif modulo < 3:
+            self.current_sprite = self.firesprite[2]
+
+    def draw(self):
+        px.blt(self.cell_position_on_screen.x,
+               self.cell_position_on_screen.y, 0, *self.current_sprite, 0)
+
+def random_hazard(hazard_list:list):
+    for _i in range(randrange(30, 40)):
+        hazard_list.append(Block_On_Fire(Vector2(randrange(2,30),randrange(2,30))))
 class Main:
     def __init__(self):
         px.init(256, 256, caption='Jamax', border_color=0xCDC6C0)
         px.load("assets/assetpack1.pyxres")
-        self.player = Player(Vector2(50,50), Vector2(12, 12))
-        self.time_since_app_is_open = time()
+        self.player = Player(Vector2(50, 50), Vector2(12, 12))
+        self.hazard_list = []
+        random_hazard(self.hazard_list)
+        print(self.hazard_list)
+        self.TIME_WHEN_APP_OPEN = time()
+        self.actual_time = 0
+
+        px.mouse(True)
         px.run(self.update, self.draw)
+    
+    def check_hazard(self):
+        if px.btn(px.MOUSE_LEFT_BUTTON):
+            for i in self.hazard_list:
+                if i.cell_position == self.mouse // 8:
+                    print('bleu', i.cell_position_on_screen.distancefromvector(self.player.position))
+                    if i.cell_position_on_screen.distancefromvector(self.player.position) < 300:
+                        self.hazard_list.remove(i)
+
+
+    def check_time(self):
+        self.t = time()
+        self.actual_time = self.t - self.TIME_WHEN_APP_OPEN
 
     def update(self):
+        self.mouse = Vector2(px.mouse_x, px.mouse_y)
+        self.check_time()
         self.player.update()
+        for i in self.hazard_list:
+            i.update(self.actual_time)
+        self.check_hazard()
 
     def draw(self):
         px.cls(0)
         px.bltm(0, 0, 0, 0, 0, 32, 32, 0)
         self.player.draw()
+        for i in self.hazard_list:
+            i.draw()
 
 
 if __name__ == "__main__":
