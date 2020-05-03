@@ -76,7 +76,7 @@ class Player:
                 self.position -= self.newdir
 
     def update(self):
-        self.direction = self.get_input_velocity()
+        self.direction = self.get_input_velocity() * 2
         self.sprite_change(self.direction)
         self.find_wall_around_player()
         self.slide_along_wall()
@@ -136,9 +136,12 @@ class Main:
         self.player = Player(Vector2(50, 50), Vector2(12, 12))
         self.hazard_list = []
         random_hazard(self.hazard_list)
-        print(self.hazard_list)
+        # print(self.hazard_list)
         self.TIME_WHEN_APP_OPEN = time()
         self.actual_time = 0
+        self.score = 0
+        self.highscore = 0
+        self.you_die = False
 
         px.mouse(True)
         px.run(self.update, self.draw)
@@ -147,14 +150,20 @@ class Main:
         if px.btn(px.MOUSE_LEFT_BUTTON):
             for i in self.hazard_list:
                 if i.cell_position == self.mouse // 8:
-                    print('bleu', i.cell_position_on_screen.distancefromvector(self.player.position))
-                    if i.cell_position_on_screen.distancefromvector(self.player.position) < 300:
+                    # print('bleu', i.cell_position_on_screen.distancefromvector(self.player.position))
+                    if i.cell_position_on_screen.distancefromvector(self.player.position) < 600:
                         self.hazard_list.remove(i)
-
+                        self.score += 1
+        
 
     def check_time(self):
         self.t = time()
         self.actual_time = self.t - self.TIME_WHEN_APP_OPEN
+        # print(self.actual_time)
+        if self.actual_time >= 30:
+            # print('b')
+            self.TIME_WHEN_APP_OPEN = time()
+            random_hazard(self.hazard_list)
 
     def update(self):
         self.mouse = Vector2(px.mouse_x, px.mouse_y)
@@ -163,6 +172,24 @@ class Main:
         for i in self.hazard_list:
             i.update(self.actual_time)
         self.check_hazard()
+        self.how_much_fire = len(self.hazard_list)
+        if self.how_much_fire > 45:
+            self.you_die = True
+
+        # if self.how_much_fire == 0:
+        #     self.score += 15
+        #     self.actual_time = 0
+        #     random_hazard(self.hazard_list)
+
+        if self.you_die:
+            # print('a')
+            self.hazard_list.clear()
+            random_hazard(self.hazard_list)
+            self.score = 0
+            self.you_die = False
+            if self.score > self.highscore:
+                self.highscore = self.score
+
 
     def draw(self):
         px.cls(0)
@@ -170,7 +197,10 @@ class Main:
         self.player.draw()
         for i in self.hazard_list:
             i.draw()
-
+        px.text(17,9,'highscore: '+ str(self.score), px.COLOR_WHITE)
+        px.text(17, 18, 'Fire count: ' + str(self.how_much_fire), px.COLOR_WHITE)
+        px.text(178, 9, 'time remaining: ' + str( 30 - int(self.actual_time)), px.COLOR_WHITE)
+        px.text(178 , 18, 'highscore: '+ str(self.highscore), px.COLOR_WHITE )
 
 if __name__ == "__main__":
     Main()
