@@ -131,13 +131,14 @@ def random_hazard(hazard_list:list):
         hazard_list.append(Block_On_Fire(Vector2(randrange(2,30),randrange(2,30))))
 class Main:
     def __init__(self):
-        px.init(256, 256, caption='Jamax', border_color=0xCDC6C0)
+        px.init(256, 256, caption='Jamax')
         px.load("assets/assetpack1.pyxres")
         self.player = Player(Vector2(50, 50), Vector2(12, 12))
         self.hazard_list = []
         random_hazard(self.hazard_list)
         # print(self.hazard_list)
         self.TIME_WHEN_APP_OPEN = time()
+        self.buffer_time = self.TIME_WHEN_APP_OPEN
         self.actual_time = 0
         self.score = 0
         self.highscore = 0
@@ -158,11 +159,11 @@ class Main:
 
     def check_time(self):
         self.t = time()
-        self.actual_time = self.t - self.TIME_WHEN_APP_OPEN
+        self.actual_time = self.t - self.buffer_time
         # print(self.actual_time)
         if self.actual_time >= 30:
             # print('b')
-            self.TIME_WHEN_APP_OPEN = time()
+            self.buffer_time = time()
             random_hazard(self.hazard_list)
 
     def update(self):
@@ -176,19 +177,20 @@ class Main:
         if self.how_much_fire > 45:
             self.you_die = True
 
-        # if self.how_much_fire == 0:
-        #     self.score += 15
-        #     self.actual_time = 0
-        #     random_hazard(self.hazard_list)
+        if self.how_much_fire == 0:
+            self.score += 15
+            self.buffer_time = time()
+            random_hazard(self.hazard_list)
 
         if self.you_die:
             # print('a')
             self.hazard_list.clear()
             random_hazard(self.hazard_list)
+            if self.score > self.highscore:
+                print('uui')
+                self.highscore = self.score
             self.score = 0
             self.you_die = False
-            if self.score > self.highscore:
-                self.highscore = self.score
 
 
     def draw(self):
@@ -197,7 +199,7 @@ class Main:
         self.player.draw()
         for i in self.hazard_list:
             i.draw()
-        px.text(17,9,'highscore: '+ str(self.score), px.COLOR_WHITE)
+        px.text(17,9,'score: '+ str(self.score), px.COLOR_WHITE)
         px.text(17, 18, 'Fire count: ' + str(self.how_much_fire), px.COLOR_WHITE)
         px.text(178, 9, 'time remaining: ' + str( 30 - int(self.actual_time)), px.COLOR_WHITE)
         px.text(178 , 18, 'highscore: '+ str(self.highscore), px.COLOR_WHITE )
